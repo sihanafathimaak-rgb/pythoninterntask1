@@ -1,76 +1,183 @@
-Student Record Management System
+# 🎓 Student Record Management System
 
-A Python-based application for managing student records using SQLite database storage.
+A single-file, menu-driven command-line application for managing student records. It stores data in a local **SQLite** database, validates every input, and handles errors (including a corrupted database) gracefully.
 
-Features
+---
 
-- Add new student records
-- View all student details
-- Search students by roll number or name
-- Update existing student information
-- Delete student records with confirmation
-- Validate student input details
-- Store data persistently using SQLite
-- Handle duplicate records and database errors
+## ✨ Features
 
-Tech Stack
+- **Add, view, search, update, and delete** student records (full CRUD)
+- **Persistent storage** – data is saved in `students.db`, created automatically next to the script
+- **Strict input validation** for roll number, name, email, GPA, and course, with friendly error messages and re-prompting
+- **Partial, case-insensitive search** by roll number or name
+- **Safe updates** – press Enter to keep the current value of any field
+- **Delete confirmation** – asks `[y/N]` before removing a record
+- **Duplicate protection** – roll numbers are unique (primary key)
+- **Database safety**
+  - Integrity check on startup
+  - Automatic commit on success and rollback on failure
+  - Corrupted databases are **moved aside, never deleted**, and a fresh one is created on request
+- **Clean table output** with aligned columns and a record count
+- **Graceful exit handling** – `Ctrl+C` cancels the current action; `Ctrl+D`/`Ctrl+Z` exits cleanly
+- **Zero dependencies** – uses only the Python standard library
 
-- Programming Language: Python
-- Database: SQLite
-- Libraries: "sqlite3", "re", "math", "dataclasses", "pathlib"
-- Development Tool: Visual Studio Code
-- Version Control: Git and GitHub
+---
 
-Project Structure
+## 🛠️ Tech Stack
 
-Student-Record-Management/
-├── student_records.py
-├── README.md
-└── students.db
+| Component | Details |
+|-----------|---------|
+| **Language** | Python 3.8+ |
+| **Database** | SQLite (via the built-in `sqlite3` module) |
+| **Libraries** | Standard library only: `sqlite3`, `re`, `math`, `time`, `pathlib`, `dataclasses`, `contextlib` |
+| **Interface** | Command-line, menu-driven |
+| **Platform** | Windows, macOS, Linux |
+| **Dependencies** | None — no `pip install` required |
 
-"students.db" is created automatically when the application runs.
+---
 
-Setup Instructions
+## ⚙️ Setup
 
-Prerequisites
+### 1. Prerequisites
 
-- Python 3.9 or later
-- Visual Studio Code (recommended)
+Check that Python 3.8 or newer is installed:
 
-Installation and Execution
+```bash
+python --version
+```
 
-1. Clone or download this repository.
-2. Open the project folder in Visual Studio Code.
-3. Open the terminal in the project directory.
-4. Run the following command:
+If it is not, download it from [python.org](https://www.python.org/downloads/).
 
+### 2. Get the project
+
+```bash
+git clone <your-repository-url>
+cd <project-folder>
+```
+
+Or download `student_records.py` into any folder.
+
+### 3. Run
+
+```bash
 python student_records.py
+```
 
-5. Select an option from the menu to manage student records.
+The database file `students.db` is created automatically on first run.
 
-Menu Options
+---
 
-Option| Description
-1| Add Student
-2| View All Students
-3| Search Student
-4| Update Student
-5| Delete Student
-0| Exit Application
+## 🚀 Usage
 
-Database
+When the program starts, you will see this menu:
 
-The application uses SQLite to store student details, including roll number, name, email, GPA, and course. Records remain saved between program executions.
+```text
+==== Student Record Management ====
+ 1. Add student
+ 2. View all students
+ 3. Search (roll no. or name)
+ 4. Update student
+ 5. Delete student
+ 0. Exit
+```
 
-Future Enhancements
+Type the option number and press Enter.
 
-- Export records to CSV
-- Add automated unit testing
-- Implement a graphical user interface
-- Add advanced search and sorting
+### Example session
 
-Author
+```text
+Choose an option: 1
 
-Sihana Fathima A.K.
+-- Add student (Ctrl+C to cancel) --
+Roll no : 24bib001
+Name    : Sihana Fathima
+Email   : sihana@example.com
+GPA     : 8.5
+Course  : B.Sc Computer Science
+  OK Student added.
+Roll No     Name                    Email                         GPA   Course
+--------------------------------------------------------------------------------
+24BIB001    Sihana Fathima          sihana@example.com            8.50  B.Sc Computer Science
 
-Developed as a Python project to practise database management, CRUD operations, input validation, and exception handling.
+  1 record(s)
+```
+
+---
+
+## ✅ Validation Rules
+
+| Field | Rule | Notes |
+|-------|------|-------|
+| **Roll No** | 3–15 characters: letters, digits, hyphens; cannot start with a hyphen | Automatically converted to UPPERCASE (e.g. `24BIB001`) |
+| **Name** | 2–60 characters; letters, spaces, `.`, `'`, `-` | Extra spaces are collapsed; needs at least 2 letters |
+| **Email** | Valid email format, up to 254 characters | Automatically converted to lowercase |
+| **GPA** | Number from 0 to 10 | Rounded to 2 decimal places; `nan` and `inf` are rejected |
+| **Course** | 2–50 characters | Extra spaces are collapsed |
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+CREATE TABLE IF NOT EXISTS students (
+    roll_no TEXT PRIMARY KEY,
+    name    TEXT NOT NULL,
+    email   TEXT NOT NULL,
+    gpa     REAL NOT NULL CHECK (gpa >= 0),
+    course  TEXT NOT NULL
+)
+```
+
+---
+
+## 🧱 Project Structure
+
+```text
+.
+├── student_records.py   # The entire application
+├── students.db          # SQLite database (auto-created)
+└── README.md            # Documentation
+```
+
+### Code organization (inside `student_records.py`)
+
+| Section | Purpose |
+|---------|---------|
+| `Student` dataclass | Holds one student's data |
+| Validation functions | `validate_roll_no`, `validate_name`, `validate_email`, `validate_gpa`, `validate_course` |
+| Custom exceptions | `ValidationError`, `StorageError`, `DuplicateStudentError`, `StudentNotFoundError`, `CorruptDatabaseError` |
+| `StudentRepository` | All database operations (add, get, list, search, update, delete) |
+| Menu functions | User-facing actions and table printing |
+| `main()` | Program loop and error handling |
+
+---
+
+## 🔒 Safety & Error Handling
+
+- **Parameterized SQL queries** prevent SQL injection.
+- **Transactions**: changes are committed only if the operation succeeds, otherwise rolled back.
+- **Corruption recovery**: if the database fails its integrity check, the program offers to rename the bad file to `students.db.corrupt-<timestamp>` and start fresh. Nothing is deleted.
+- **Locked database**: waits up to 5 seconds before reporting an error.
+
+---
+
+## 🔮 Future Improvements
+
+- Export records to CSV or Excel
+- Sort and filter by GPA or course
+- Unit tests with `pytest`
+- Optional GUI or web interface
+
+---
+
+## 🤝 Contributing
+
+Suggestions and improvements are welcome. Fork the repository, create a feature branch, and open a pull request.
+
+## 📜 License
+
+This project is released under the MIT License.
+
+---
+
+**Author:** _Your Name_
